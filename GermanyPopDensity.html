@@ -185,7 +185,7 @@
             var area = +d.area.replace(/,/g, '');
             var population = +d.population.replace(/,/g, '');
             pop_density.set(id, population / area);
-            grp.set(id, +d.grp);
+            grp.set(id, +d.grp.replace(/,/g, ''));
             province_names.set(id, d.name);
         })
         .await(ready);
