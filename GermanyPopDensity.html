@@ -1,8 +1,22 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+    .button {
+        background-color: #FF2400;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+    }
 </style>
+
 <svg width="960" height="600"></svg>
+<div>
+    <button class="button" id="toggle_button" onclick="toggleData()">See GRP Data</button>
+</div>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 <script src="https://d3js.org/topojson.v2.min.js"></script>
@@ -12,8 +26,17 @@
         width = +svg.attr("width"),
         height = +svg.attr("height");
 
+    /* 0 is pop_density, 1 is grp */
+    var curr_data = 0;
+    var toggle_button = d3.select("#toggle_button");
+
+    var province_names = d3.map();
+
     var pop_density = d3.map();
     var pop_scale = 75;
+
+    var grp = d3.map();
+    var grp_scale = 50;
 
     var projection = d3.geoMercator();
     var path = d3.geoPath(projection);
@@ -38,13 +61,10 @@
             return d;
         }))
         .enter().append("rect")
-        .attr("height", 8)
-        .attr("x", function (d) { return x(d[0]); })
-        .attr("width", function (d) { return x(d[1]) - x(d[0]); })
-        .attr("fill", function (d) { return color(d[0]); });
+        .attr("class", "scale_rect");
 
     g.append("text")
-        .attr("class", "caption")
+        .attr("class", "scale_text")
         .attr("x", x.range()[0])
         .attr("y", -6)
         .attr("fill", "#000")
@@ -67,12 +87,106 @@
         .select(".domain")
         .remove();
 
+    function toggleData() {
+        if (curr_data == 0) {
+            updateGRP();
+            curr_data = 1;
+            toggle_button.style("background-color", "#4CAF50");
+            toggle_button.text("See Pop. Density Data");
+        }
+        else if (curr_data == 1) {
+            updatePopDensity();
+            curr_data = 0;
+            toggle_button.style("background-color", "#FF2400");
+            toggle_button.text("See GRP Data");
+        }
+        else {
+            console.err("curr_data invalid value.");
+        }
+    }
+    function updatePopDensity() {
+        color.range(d3.schemeReds[9]);
+        g.selectAll(".scale_rect")
+            .attr("class", "scale_rect")
+            .attr("height", 8)
+            .attr("x", function (d) { return x(d[0]); })
+            .attr("width", function (d) { return x(d[1]) - x(d[0]); })
+            .attr("fill", function (d) { return color(d[0]); });
+
+        g.selectAll(".scale_text")
+            .text("2015 Population Density (km²)");
+
+        g.call(d3.axisBottom(x)
+            .tickSize(13)
+            .tickFormat(function (x, i) {
+                if (i == 0) {
+                    return x;
+                } else if (i == 8) {
+                    return x * pop_scale + '+';
+                } else {
+                    return x * pop_scale;
+                }
+            })
+            .tickValues(color.domain()))
+            .select(".domain")
+            .remove();
+
+        svg.selectAll(".states")
+            .selectAll("path")
+            .attr("fill", function (d, id) {
+                return color(d.pop_density / pop_scale);
+            })
+            .select("title")
+            .text(function (d) {
+                return d.province + ": " + d.pop_density + " persons per km²";
+            });
+    }
+    function updateGRP() {
+        color.range(d3.schemeGreens[9]);
+        g.selectAll(".scale_rect")
+            .attr("class", "scale_rect")
+            .attr("height", 8)
+            .attr("x", function (d) { return x(d[0]); })
+            .attr("width", function (d) { return x(d[1]) - x(d[0]); })
+            .attr("fill", function (d) { return color(d[0]); });
+
+        g.selectAll(".scale_text")
+            .text("2015 Gross Regional Product (billions of euros)");
+
+        g.call(d3.axisBottom(x)
+            .tickSize(13)
+            .tickFormat(function (x, i) {
+                if (i == 0) {
+                    return x;
+                } else if (i == 8) {
+                    return x * grp_scale + '+';
+                } else {
+                    return x * grp_scale;
+                }
+            })
+            .tickValues(color.domain()))
+            .select(".domain")
+            .remove();
+
+        svg.selectAll(".states")
+            .selectAll("path")
+            .attr("fill", function (d, id) {
+                return color(d.grp / grp_scale);
+            })
+            .select("title")
+            .text(function (d) {
+                return d.province + ": " + d.grp + " billion euros";
+            });
+    }
+
     d3.queue()
         .defer(d3.json, "germany.json")
         .defer(d3.csv, "germany.csv", function (d, id) {
             var area = +d.area.replace(/,/g, '');
             var population = +d.population.replace(/,/g, '');
             pop_density.set(id, population / area);
+            grp.set(id, +d.grp.replace(/,/g, ''));
+            province_names.set(id, d.name);
         })
         .await(ready);
 
@@ -80,6 +194,7 @@
         if (error) throw error;
 
         projection.fitExtent([[0, 70], [width, height]], de);
+        console.log(de);
 
         svg.append("g")
             .attr("class", "states")
@@ -88,14 +203,17 @@
             .enter().append("path")
             .attr("d", path)
             .attr("fill", function (d, id) {
+                d.province = province_names.get(id);
                 d.pop_density = Math.ceil(pop_density.get(id));
+                d.grp = grp.get(id);
                 return color(d.pop_density / pop_scale);
             })
             .append("title")
             .text(function (d) {
-                d.province = d.properties.NAME_1;
                 return d.province + ": " + d.pop_density + " persons per km²";
             });
+
+        updatePopDensity();
     }
 
 </script>
