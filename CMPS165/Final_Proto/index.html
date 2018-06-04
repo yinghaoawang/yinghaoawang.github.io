@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>California Wildfires</title>
+</head>
+
+<body>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+
+    <h2>California Wildfires</h2>
+    <svg width="960" height="600"></svg>
+
+    <script>
+        let svg = d3.select("svg"),
+            width = +svg.attr("width"),
+            height = +svg.attr("height");
+        
+        // data file to be stored in this
+        let raw_data = undefined;
+        
+        // stores information about each county
+        // sample usage: fire_map['Santa Cruz']['Arson']
+        let fire_map = d3.map();
+        let fire_types = [
+            'Arson',
+            'Campfire',
+            'Debris Burning',
+            'Elec. Power', 
+            'Equip. Use',
+            'Ltng.',
+            'Misc.',
+            'P-W-F',
+            'Railroad',
+            'Smoking',
+            'Undet.',
+            'Vehicle',
+            'Total' // not sure if to keep this or to calculate on own
+        ];
+        let county_key = 'COUNTY';
+        let selected_key = 'Total';
+
+        // Create select dropdown
+        var select_dd = d3.select('body')
+            .append('select')
+            .attr('class', 'select');
+
+        select_dd.selectAll('option')
+            .data(fire_types).enter()
+            .append('option')
+            .text(d => { return d });
+
+        select_dd.property('value', selected_key);
+
+        // for displaying geomap
+        let projection = d3.geoMercator();
+        let path = d3.geoPath(projection);
+
+        // color scale variables
+        let scale_max = 150; // TODO: not hardcode this
+        let color_scale = d3.scaleSequential(d3.interpolateReds).domain([0, scale_max]);
+
+        // load the data, runs ready when it's ready
+        d3.queue()
+            .defer(d3.json, "ca2.json")
+            .defer(d3.csv, "2016_fires_type.csv", (d, id) => {
+                // extensive checks
+                if (d[county_key] === undefined) {
+                    console.error('Invalid county key: ' + county_key);
+                    return;
+                }
+
+                // create county index if it doesnt exist
+                let county_name = d[county_key];
+                if (fire_map[county_name] === undefined) {
+                    fire_map[county_name] = {};
+                }
+                
+                // set values for each fire type for the current county
+                fire_types.forEach(key => {
+                    if (d[key] === undefined) {
+                        console.error('Invalid fire type key: ' + key);
+                        return;
+                    }
+                    fire_map[county_name][key] = d[key];
+                });
+            })
+            .await(ready);
+
+        // To be done after data is all loaded
+        function ready(error, data) {
+            if (error) throw error;
+
+            // raw_data is used in other functions so dont have to pass in
+            raw_data = data;
+
+            // inits and updates the geomap
+            init_geomap();
+            update_geomap();
+
+            // add listener for dropdown change
+            select_dd.on('change', () => {
+                let select_value = select_dd.property('value');
+                selected_key = select_value;
+                update_geomap();
+            });
+        }
+
+        // creates the geomap skeleton
+        function init_geomap() {
+            projection.fitExtent([[0, 30], [width, height]], raw_data);
+
+            // sets county variable for each piece of data
+            raw_data.features.forEach(d => {
+                d.county = d.properties.NAME_2;
+            });
+
+            // creates barebones geomap
+            svg.append("g")
+                .attr("class", "counties")
+                .selectAll("path")
+                .data(raw_data.features)
+                .enter().append("path")
+                .attr("d", path)
+                .append("title");
+        }
+
+        // updates the geomap based on the current selected key(s)
+        function update_geomap() {
+            svg.select("g")
+                .selectAll("path")
+                .attr("fill", (d, id) => {
+                    if (fire_map[d.county] === undefined) {
+                        console.error('County not listed in report: ' + d.county);
+                        return color_scale(0);
+                    }
+                    let val = fire_map[d.county][selected_key];
+                    return color_scale(val);
+                })
+                .select("title")
+                .text(d => {
+                    let fire_count = 0;
+                    if (fire_map[d.county] != undefined) {
+                        fire_count = fire_map[d.county][selected_key];
+                    }
+                    return d.county + ": " + fire_count + " " + selected_key + " fires";
+                });
+        }
+    </script>
+</body>
+
+</html>
