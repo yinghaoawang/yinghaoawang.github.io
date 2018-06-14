@@ -56,6 +56,8 @@ class FireGeomap {
     this.scale_max = 0;
     this.color_scale = d3.scaleThreshold();
 
+    this.tooltip = create_tooltip();
+
     // init legend
     this.legend_x = d3.scaleLinear().rangeRound([500, 950]);
     this.legend_g = svg
@@ -73,6 +75,12 @@ class FireGeomap {
       .attr("font-weight", "bold");
 
     this.init_geomap();
+  }
+
+  create_tooltip() {
+    return d3.select("body").append("div")	
+    .attr("class", "tooltip")
+    .style("opacity", 0);
   }
 
   update_color_scale() {
@@ -211,6 +219,8 @@ class FireGeomap {
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0.3)
       .append("title");
+
+    
 
     this.update_geomap();
   }
