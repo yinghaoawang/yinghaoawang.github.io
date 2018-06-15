@@ -203,13 +203,6 @@ class FireGeomap {
       d.county = d.properties.NAME_2;
     });
 
-
-    let tooltip = this.tooltip;
-    let fm = this.fire_map;
-    let selected_category = this.selected_category;
-    let selected_year = this.selected_year;
-    let selected_type = this.selected_type;
-
     // creates barebones geomap
     this.svg
       .append("g")
@@ -222,16 +215,14 @@ class FireGeomap {
       .attr("d", this.path)
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0.3)
-      .on("mouseover", function(d) {
-        
-
-        tooltip
+      .on("mouseover", (d) => {
+        this.tooltip
           .transition()
           .duration(200)
           .style("opacity", 0.9);
 
-          if (fm[d.county] === undefined || (fm[d.county][selected_category] === undefined || fm[d.county][selected_category][selected_year] === undefined || fm[d.county][selected_category][selected_year][selected_type] < 0)) {
-            tooltip
+          if (this.fire_map[d.county] === undefined || (this.fire_map[d.county][this.selected_category] === undefined || this.fire_map[d.county][this.selected_category][this.selected_year] === undefined || this.fire_map[d.county][this.selected_category][this.selected_year][this.selected_type] < 0)) {
+            this.tooltip
             .html(`
             <b>${d.county} County</b><br/>
             N/A Total Fires<br/>
@@ -241,18 +232,18 @@ class FireGeomap {
             .style("left", d3.event.pageX + "px")
             .style("top", d3.event.pageY - 28 + "px");
           } else
-        tooltip
+        this.tooltip
           .html(`
           <b>${d.county} County</b><br/>
-          ${fm[d.county]["Count"][selected_year][selected_type]} Total Fires<br/>
-          ${fm[d.county]["Acres"][selected_year][selected_type]} Acres Burned<br/>
-          ${fm[d.county]["Dollars"][selected_year][selected_type]} Damages in Dollars<br/>
+          ${this.fire_map[d.county]["Count"][this.selected_year][this.selected_type]} Total Fires<br/>
+          ${this.fire_map[d.county]["Acres"][this.selected_year][this.selected_type]} Acres Burned<br/>
+          ${this.fire_map[d.county]["Dollars"][this.selected_year][this.selected_type]} Damages in Dollars<br/>
           `)
           .style("left", d3.event.pageX + "px")
           .style("top", d3.event.pageY - 28 + "px");
       })
       .on("mouseout", function(d) {
-        tooltip
+        this.tooltip
           .transition()
           .duration(500)
           .style("opacity", 0);
