@@ -35,6 +35,11 @@ const CONTRACT_COLOR = d3.rgb(210, 210, 210);
 class FireGeomap {
   constructor(svg, geo_data, fire_data) {
     this.svg = svg;
+    
+    this.tooltip = d3.select("body").append("div")	
+    .attr("class", "tooltip")				
+    .style("opacity", 0);
+
 
     // data file to be stored in this
     this.data = geo_data;
@@ -198,6 +203,13 @@ class FireGeomap {
       d.county = d.properties.NAME_2;
     });
 
+
+    let tooltip = this.tooltip;
+    let fm = this.fire_map;
+    let selected_category = this.selected_category;
+    let selected_year = this.selected_year;
+    let selected_type = this.selected_type;
+
     // creates barebones geomap
     this.svg
       .append("g")
@@ -210,6 +222,41 @@ class FireGeomap {
       .attr("d", this.path)
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0.3)
+      .on("mouseover", function(d) {
+        
+
+        tooltip
+          .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+
+          if (fm[d.county] === undefined || (fm[d.county][selected_category] === undefined || fm[d.county][selected_category][selected_year] === undefined || fm[d.county][selected_category][selected_year][selected_type] < 0)) {
+            tooltip
+            .html(`
+            <b>${d.county} County</b><br/>
+            N/A Total Fires<br/>
+            N/A Acres Burned<br/>
+            N/A Damages in Dollars<br/>
+            `)
+            .style("left", d3.event.pageX + "px")
+            .style("top", d3.event.pageY - 28 + "px");
+          } else
+        tooltip
+          .html(`
+          <b>${d.county} County</b><br/>
+          ${fm[d.county]["Count"][selected_year][selected_type]} Total Fires<br/>
+          ${fm[d.county]["Acres"][selected_year][selected_type]} Acres Burned<br/>
+          ${fm[d.county]["Dollars"][selected_year][selected_type]} Damages in Dollars<br/>
+          `)
+          .style("left", d3.event.pageX + "px")
+          .style("top", d3.event.pageY - 28 + "px");
+      })
+      .on("mouseout", function(d) {
+        tooltip
+          .transition()
+          .duration(500)
+          .style("opacity", 0);
+      })
       .append("title");
 
     this.update_geomap();
@@ -294,6 +341,7 @@ class FireGeomap {
         }
       })
       .select("title")
+      /*
       .text(d => {
         let value = 0;
         if (this.fire_map[d.county] != undefined) {
@@ -312,7 +360,7 @@ class FireGeomap {
         if (d.contract_county) message = "Contract County";
 
         return `${d.county}: ${message}`;
-      });
+      })*/;
   }
 }
 
@@ -396,8 +444,7 @@ class GeomapSelect extends GeomapInput {
       .style("left", "280px")
       .style("top", "-710px");
 
-    let select_dd = select_lb
-      .append("select");
+    let select_dd = select_lb.append("select");
 
     select_dd
       .selectAll("option")
