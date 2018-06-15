@@ -60,9 +60,9 @@ label.dropdown select::-ms-expand {
 label.dropdown:before {
 	content: '';
 	right: 5px;
-	top: -7px;
+	top: 5px;
 	width: 30px;
-	height: 33px;
+	height: 18px;
 	background: #f8f8f8;
 	position: absolute;
 	pointer-events: none;
@@ -78,7 +78,7 @@ label.dropdown:after {
 	-ms-transform: rotate(90deg);
 	transform: rotate(90deg);
 	right: 2px;
-	top: -3px;
+	top: 7px;
 	border-bottom: 1px solid #aaa;
 	position: absolute;
 	pointer-events: none;

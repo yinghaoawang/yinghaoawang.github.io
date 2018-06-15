@@ -3,7 +3,6 @@ function schemize_nums(max, times) {
   let nums = [];
   let step = max / times;
   for (let i = 0; i <= times; ++i) nums.push(i * step);
-  console.log(max, times, nums);
   return nums;
 }
 
