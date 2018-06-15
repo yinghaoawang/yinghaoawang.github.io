@@ -31,6 +31,7 @@ const FIRE_YEARS = [
 ];
 const COUNTY_KEY = "COUNTY";
 const CONTRACT_COLOR = d3.rgb(210, 210, 210);
+const ZERO_COLOR = d3.rgb(190, 190, 190);
 
 class FireGeomap {
   constructor(svg, geo_data, fire_data) {
@@ -84,38 +85,40 @@ class FireGeomap {
     this.scale_max = this.get_max_data();
     this.color_scale.domain(schemize_nums(this.scale_max, 5));
 
+    if (this.scale_max == 0) this.color_scale.domain([0, 1]);
+
     let rng = undefined;
     if (this.selected_category === "Count") rng = d3.schemeOrRd[6];
     else if (this.selected_category === "Acres") rng = d3.schemeReds[6];
     else if (this.selected_category === "Dollars") rng = d3.schemeGreens[6];
+
     this.color_scale.range(rng);
-
-    this.legend_x.domain([0, this.scale_max]);
-
-    let color_scale = this.color_scale;
-    let x = this.legend_x;
+    
+    if (this.scale_max == 0) this.legend_x.domain([0, 1]);
+    else this.legend_x.domain([0, this.scale_max]);
 
     this.legend_g.selectAll("rect").remove();
     this.legend_g
       .selectAll("rect")
       .data(
-        color_scale.range().map(function(d) {
-          d = color_scale.invertExtent(d);
-          console.log(d);
+        this.color_scale.range().map((d) => {
+          d = this.color_scale.invertExtent(d);
+          if (d[0] == null) d[0] = this.legend_x.domain()[0];
+          if (d[1] == null) d[1] = this.legend_x.domain()[1];
           return d;
         })
       )
       .enter()
       .append("rect")
       .attr("height", 8)
-      .attr("x", function(d) {
-        return x(d[0]);
+      .attr("x", (d) => {
+        return this.legend_x(d[0]);
       })
-      .attr("width", function(d) {
-        return x(d[1]) - x(d[0]);
+      .attr("width", (d) => {
+        return this.legend_x(d[1]) - this.legend_x(d[0]);
       })
-      .attr("fill", function(d) {
-        return color_scale(d[0]);
+      .attr("fill", (d) => {
+        return this.color_scale(d[0]);
       });
 
     this.legend_g.select("g").remove();
@@ -161,7 +164,7 @@ class FireGeomap {
   update_fire_map(fire_data, year) {
     fire_data.forEach(d => {
       if (d[COUNTY_KEY] === undefined) {
-        console.error("Invalid county key: " + FireGeomap.county_key);
+        console.error("Invalid county key: " + COUNTY_KEY);
         return;
       }
 
@@ -187,7 +190,8 @@ class FireGeomap {
             // -1 refers to missing data
             this.fire_map[county_name][category][year][key] = -1;
           } else {
-            this.fire_map[county_name][category][year][key] = d[key_name];
+            let value =+parseFloat(d[key_name]);
+            this.fire_map[county_name][category][year][key] = value;
           }
         });
       });
@@ -242,7 +246,7 @@ class FireGeomap {
           .style("left", d3.event.pageX + "px")
           .style("top", d3.event.pageY - 28 + "px");
       })
-      .on("mouseout", function(d) {
+      .on("mouseout", (d) => {
         this.tooltip
           .transition()
           .duration(500)
@@ -302,11 +306,9 @@ class FireGeomap {
       let selected_data = +this.get_selected_data(county);
 
       if (i == 0 || selected_data > max) {
-        console.log(max, selected_data);
         max = selected_data;
       }
     }
-    console.log("max:" + max);
     return max;
   }
 
@@ -318,40 +320,18 @@ class FireGeomap {
       .selectAll("path")
       .attr("fill", (d, id) => {
         if (this.fire_map[d.county] === undefined) {
-          //console.error("County not listed in report: " + d.county);
           // SLOPPY LAZY
           d.contract_county = true;
           return CONTRACT_COLOR;
         } else {
           //SLOPPY LAZY
           d.contract_county = false;
-          //console.log(d.county + " " + this.selected_category + " " + this.selected_year + " " + this.selected_type);
           let val = this.get_selected_data(d.county);
           if (val < 0) return CONTRACT_COLOR;
           return this.color_scale(val);
         }
       })
-      .select("title")
-      /*
-      .text(d => {
-        let value = 0;
-        if (this.fire_map[d.county] != undefined) {
-          value = this.get_selected_data(d.county);
-        }
-
-        let ending = "";
-        if (this.selected_category === "Count") ending = "Fires";
-        if (this.selected_category === "Acres") ending = "Acres Burned";
-        if (this.selected_category === "Dollars") {
-          ending = "Thousand Dollars in Damage";
-        }
-
-        let message = value.toLocaleString() + " " + ending;
-        if (value < 0) message = "N/A";
-        if (d.contract_county) message = "Contract County";
-
-        return `${d.county}: ${message}`;
-      })*/;
+      .select("title");
   }
 }
 
@@ -381,7 +361,6 @@ class GeomapSlider extends GeomapInput {
   }
   create_input() {
     // Create select dropdown
-    console.log(d3.min(this.list_data));
 
     let slider = d3
       .sliderHorizontal()
