@@ -1,6 +1,6 @@
 class GeomapButton extends GeomapInput {
-  constructor(geomap, button_value, selected_key_name, button_text) {
-    super(geomap, selected_key_name);
+  constructor(geomap, button_value, container_name, selected_key_name, button_text) {
+    super(geomap, selected_key_name, container_name);
     this.button_value = button_value;
     if (button_text === undefined) this.button_text = this.button_value;
     else this.button_text = button_text;
@@ -8,7 +8,7 @@ class GeomapButton extends GeomapInput {
   }
   create_input() {
     let button = d3
-      .select(".container-btn")
+      .select(this.container_name)
       .append("input")
       .attr("type", "button")
       .attr("class", "button");

@@ -83,23 +83,23 @@ function ready(
 
   fire_geomap = new FireGeomap(svg, geo_data, fire_data);
 
-  scale_select = new GeomapSelect(fire_geomap, FIRE_SCALES, "scale", "Scale By")
-  type_select = new GeomapSelect(fire_geomap, FIRE_TYPES, "type", "Fire Type");
+  scale_select = new GeomapSelect(fire_geomap, FIRE_SCALES,".container-select", "scale", "Scale By")
+  type_select = new GeomapSelect(fire_geomap, FIRE_TYPES,".container-select", "type", "Fire Type");
 
   scale_select.set_pos(705, -870);
   type_select.set_pos(470, -815);
 
-  
-
   count_btn = new GeomapButton(
     fire_geomap,
     "Count",
+    ".container-button",
     "category",
     "Number of Fires"
   );
   acres_btn = new GeomapButton(
     fire_geomap,
     "Acres",
+    ".container-button",
     "category",
     "Acres Burned"
   );
@@ -108,10 +108,11 @@ function ready(
   dollars_btn = new GeomapButton(
     fire_geomap,
     "Dollars",
+    ".container-button",
     "category",
     "Dollar Damage"
   );
 
   dollars_btn.set_attr("class", "button green");
-  year_slider = new GeomapSlider(fire_geomap, FIRE_YEARS, "year");
+  year_slider = new GeomapSlider(fire_geomap, FIRE_YEARS, ".container-slider", "year");
 }

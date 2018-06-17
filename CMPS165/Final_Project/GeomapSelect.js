@@ -1,6 +1,6 @@
 class GeomapSelect extends GeomapInput {
-  constructor(geomap, list_data, selected_key_name, label_text) {
-    super(geomap, selected_key_name);
+  constructor(geomap, list_data, container_name, selected_key_name, label_text) {
+    super(geomap, selected_key_name, container_name);
     this.list_data = list_data;
     this.label_text = label_text;
     this.input = this.create_input();
@@ -9,7 +9,7 @@ class GeomapSelect extends GeomapInput {
   create_input() {
     // Create select dropdown
     let select_lb = d3
-      .select(".container-select")
+      .select(this.container_name)
       .append("label")
       .attr("class", "dropdown")
       .text(this.label_text + ": ")

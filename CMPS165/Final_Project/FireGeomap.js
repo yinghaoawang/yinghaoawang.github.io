@@ -1,3 +1,5 @@
+const CODE_NOTFOUND = -1;
+
 class FireGeomap {
   constructor(svg, geo_data, fire_data) {
     this.svg = svg;
@@ -160,13 +162,12 @@ class FireGeomap {
           let key_name = key + " " + category;
           if (d[key_name] === undefined) {
             console.error(year + " Invalid fire type key: " + key_name);
-            // -1 refers to missing data
-            this.fire_map[county_name][category][year][key] = -1;
+            this.fire_map[county_name][category][year][key] = CODE_NOTFOUND;
           } else {
             let value = +parseFloat(d[key_name]);
             if (isNaN(value))
               //console.log("NAN: " + county_name);
-              value = -1;
+              value = CODE_NOTFOUND;
             this.fire_map[county_name][category][year][key] = value;
           }
         });
@@ -184,6 +185,7 @@ class FireGeomap {
     });
 
     // creates barebones geomap
+
     this.svg
       .append("g")
       .attr("class", "counties")
@@ -201,51 +203,51 @@ class FireGeomap {
           .duration(200)
           .style("opacity", 0.9);
 
-        if (
-          this.fire_map[d.county] === undefined ||
-          (this.fire_map[d.county][this.selected_category] === undefined ||
-            this.fire_map[d.county][this.selected_category][
-              this.selected_year
-            ] === undefined ||
-            this.fire_map[d.county][this.selected_category][this.selected_year][
-              this.selected_type
-            ] < 0)
-        ) {
-          this.tooltip
-            .html(
-              `
-              <b>${d.county} County</b><br/>
-              N/A Total Fires<br/>
-              N/A Acres Burned<br/>
-              N/A Damages in Dollars<br/>
-              `
-            )
-            .style("left", d3.event.pageX + "px")
-            .style("top", d3.event.pageY - 28 + "px");
-        } else
-          this.tooltip
-            .html(
-              `
-            <b>${d.county} County</b><br/>
-            ${
-              this.fire_map[d.county]["Count"][this.selected_year][
-                this.selected_type
-              ]
-            } Total Fires<br/>
-            ${
-              this.fire_map[d.county]["Acres"][this.selected_year][
-                this.selected_type
-              ]
-            } Acres Burned<br/>
-            ${
-              this.fire_map[d.county]["Dollars"][this.selected_year][
-                this.selected_type
-              ]
-            } Damages in Dollars<br/>
-            `
-            )
-            .style("left", d3.event.pageX + "px")
-            .style("top", d3.event.pageY - 28 + "px");
+        let tooltip_text = "";
+        let header_text = "";
+        let count_value = "N/A";
+        let acres_value = "N/A";
+        let dollars_value = "N/A";
+
+        let is_county_found = this.fire_map[d.county] != undefined;
+        let is_value_found =
+          is_county_found &&
+          this.fire_map[d.county][this.selected_category] != undefined &&
+          this.fire_map[d.county][this.selected_category][this.selected_year] !=
+            undefined &&
+          this.fire_map[d.county][this.selected_category][this.selected_year][
+            this.selected_type
+          ] != CODE_NOTFOUND;
+
+        if (!is_county_found) {
+          header_text = `<b>${d.county} County<br/>(Contract County)</b>`;
+        } else {
+          header_text = `<b>${d.county} County</b>`;
+        }
+
+        if (is_value_found) {
+          // format for tooltip
+          let format = d3.format(",");
+          count_value = this.fire_map[d.county]["Count"][this.selected_year][this.selected_type];
+          acres_value = this.fire_map[d.county]["Acres"][this.selected_year][this.selected_type];
+          dollars_value = this.fire_map[d.county]["Dollars"][this.selected_year][this.selected_type];
+
+          count_value = format(count_value);
+          acres_value = format(acres_value);
+          dollars_value = format(dollars_value);
+        }
+
+        tooltip_text = `
+          ${header_text}<br/>
+          ${count_value} Total Fires<br/>
+          ${acres_value} Acres Burned<br/>
+          ${dollars_value} Damages in Dollars
+          `;
+
+        this.tooltip
+          .html(tooltip_text)
+          .style("left", d3.event.pageX + "px")
+          .style("top", d3.event.pageY - 28 + "px");
       })
       .on("mouseout", d => {
         this.tooltip
@@ -266,33 +268,15 @@ class FireGeomap {
 
     if (this.fire_map[county] === undefined) {
       // console.error("County does not exist in fire map: " + county);
-      return -1;
+      return CODE_NOTFOUND;
     }
     if (this.fire_map[county][this.selected_category] === undefined) {
-      /*
-        console.error(
-          "Category does not exist for " +
-            county +
-            " county : " +
-            this.selected_category
-        );
-        */
-      return -1;
+      return CODE_NOTFOUND;
     }
     if (
       this.fire_map[county][this.selected_category][chosen_year] === undefined
     ) {
-      /*
-        console.error(
-          "Year does not exist for " +
-            county +
-            " county " +
-            this.selected_category +
-            ": " +
-            this.selected_year
-        );
-        */
-      return -1;
+      return CODE_NOTFOUND;
     }
     return this.fire_map[county][this.selected_category][chosen_year][
       chosen_type

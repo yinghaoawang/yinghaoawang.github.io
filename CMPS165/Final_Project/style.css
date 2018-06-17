@@ -8,10 +8,7 @@
 .tooltip {	
     position: absolute;			
     text-align: left;			
-    width: 160px;					
-    height: 70px;					
-    padding: 0 10px;	
-    padding-top: 5px;
+    padding: 7px 12px;
     font: 12px sans-serif;		
     background: lightsteelblue;	
     border: 0px;		

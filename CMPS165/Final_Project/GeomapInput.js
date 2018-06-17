@@ -1,8 +1,9 @@
 // Abstract class
 class GeomapInput {
-  constructor(geomap, selected_key_name) {
+  constructor(geomap, selected_key_name, container_name) {
     this.geomap = geomap;
     this.selected_key_name = selected_key_name;
+    this.container_name = container_name;
 
     if (this.constructor === GeomapInput) {
       throw new TypeError(

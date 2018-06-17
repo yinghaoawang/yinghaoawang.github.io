@@ -1,6 +1,6 @@
 class GeomapSlider extends GeomapInput {
-  constructor(geomap, list_data, selected_key_name) {
-    super(geomap, selected_key_name);
+  constructor(geomap, list_data, container_name, selected_key_name) {
+    super(geomap, selected_key_name, container_name);
     this.list_data = list_data;
     this.input = this.create_input();
   }
@@ -20,7 +20,7 @@ class GeomapSlider extends GeomapInput {
       .default(this.geomap.get_selected_by_name(this.selected_key_name));
 
     let slider_g = d3
-      .select(".container-slider")
+      .select(this.container_name)
       .append("div")
       .attr("class", "slider")
       .append("svg")
