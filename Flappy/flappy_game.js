@@ -7,15 +7,21 @@ const APPWIDTH = 800;
 const APPHEIGHT = 600;
 
 const app = new PIXI.Application(APPWIDTH, APPHEIGHT);
-document.body.appendChild(app.view);
-let rkey = keyboard(82),
-  spacekey = keyboard(32);
+document.getElementsByClassName("container-game")[0].appendChild(app.view);
+
+let rkey = keyboard(82);
+let spacekey = keyboard(32);
 
 let bird = null;
 let target_marker = null;
 let wall_man = new WallManager(app.stage);
 let target_wall = null;
 let stage_objects = [];
+let score = 0;
+Object.keys(sounds).forEach(sound_key => {
+  let sound = sounds[sound_key];
+  sound.load();
+});
 app.stage.x = app.renderer.width / 2;
 
 init();
@@ -59,6 +65,9 @@ function init() {
   stage_objects.forEach(obj => {
     app.stage.addChild(obj);
   });
+
+  score = 0;
+  update_score();
 }
 
 function get_random_gap() {
@@ -67,6 +76,7 @@ function get_random_gap() {
 
 function step(delta) {
   if (!bird.alive) {
+    spacekey.press = null;
     return;
   }
   bird.step();
@@ -97,6 +107,12 @@ function step(delta) {
   let is_bird_pass_target_wall =
     target_wall && bird.x > target_wall.x + target_wall.width;
 
+  if (is_bird_pass_target_wall) {
+    ++score;
+    update_score();
+    play_sound("bird-score");
+  }
+
   if (!target_wall || is_bird_pass_target_wall) {
     target_wall = get_next_object_ahead(bird, wall_man.walls);
     if (target_wall) {
@@ -108,6 +124,11 @@ function step(delta) {
       target_marker.y = centered_pos.y;
     }
   }
+}
+
+function update_score() {
+  let score_elem = document.getElementById("score");
+  score_elem.innerText = score;
 }
 
 function get_next_object_ahead(object, array) {
