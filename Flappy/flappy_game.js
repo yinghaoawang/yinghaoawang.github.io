@@ -1,11 +1,11 @@
 // consts
-const WALLXINTERVAL = 300;
-const WALLINITIALX = 260;
+const WALLXINTERVAL = 120;
+const WALLINITIALX = 150;
 const APPWIDTH = 800;
 const APPHEIGHT = 600;
-const BIRDCOUNT = 20;
+const BIRDCOUNT = 8;
 const BACKGROUNDCOLOR = 0xefefef;
-const WALLDISTMULT = 0.8;
+const WALLDISTMULT = 0.1;
 
 // create application canvas
 const app = new PIXI.Application(APPWIDTH, APPHEIGHT, {
@@ -26,19 +26,25 @@ let wall_man = new WallManager(app.stage);
 let bird_man = new BirdManager(app.stage);
 let other_man = new ObjectManager(app.stage);
 let target_wall = null;
+let second_target_wall = null;
 let score = 0;
 let generation = 0;
 let use_ai = true;
 
 // neural nets array
 let nns = [];
+let set_colors = [];
 for (let i = 0; i < BIRDCOUNT; ++i) {
-  nns.push(new BirdNeuralNetwork(i));
+  nns[i] = new BirdNeuralNetwork(i);
+  set_colors[i] = get_random_hex_color();
 }
+
+let history = [];
 
 init();
 
 function init() {
+  init_table();
   app.ticker.add(delta => step(delta));
   app.ticker.start();
 
@@ -46,7 +52,7 @@ function init() {
   rkey.press = () => reset();
 
   for (let i = 0; i < BIRDCOUNT; ++i) {
-    bird_man.add(10, APPHEIGHT / 4, get_random_hex_color(), nns[i]);
+    bird_man.add(10, APPHEIGHT / 2, set_colors[i], nns[i]);
   }
 
   let bird = bird_man.get(0);
@@ -62,6 +68,7 @@ function init() {
     wall_man.add(i, rando);
   }
   target_wall = wall_man.get(0);
+  second_target_wall = wall_man.get(1);
 
   target_marker = new PIXI.Graphics();
   target_marker.beginFill(0x0000ff);
@@ -78,7 +85,7 @@ function init() {
   }
 
   score = 0;
-  update_score();
+  update_text();
 }
 
 function evolve_birds() {
@@ -88,30 +95,35 @@ function evolve_birds() {
 
   let birds = bird_man.get_all();
   birds.sort(compare);
-  let cutoff1 = Math.floor(birds.length * 0.25);
-  let cutoff2 = birds.length - cutoff1;
-  // don't touch smart birds brains
-  // mutate brains of smart birds for intermediate birds
+  let cutoff1 = Math.floor(birds.length * 0.33);
+  let cutoff2 = Math.floor(birds.length * 0.9);
+
+  // mutate the best birds
   for (let i = 0; i < cutoff1; ++i) {
     let bird = birds[i];
-    console.log("untouched: " + bird.fitness);
+    bird.mutate();
+    console.log("best: " + bird.fitness + " " + i);
   }
+
+  // copy the best bird brains for intermediate birds, then mutate again
   for (let i = cutoff1; i < cutoff2; ++i) {
-    let bb_index = Math.floor(0 + (i - cutoff1) * 0.2);
+    let bb_index = Math.floor(0 + (i - cutoff1) * 0.5);
     let better_bird = birds[bb_index];
 
     let bird = birds[i];
-    console.log("better: " + better_bird.fitness + ", me: " + bird.fitness);
-    bird.brain = better_bird.brain.clone();
-    bird.mutate();
+    let index = bird.brain.index;
+    nns[index] = better_bird.brain.clone(index);
+    bird.brain = nns[index];
+    for (let i = 0; i < 50; ++i) bird.mutate();
   }
+
   // fresh brains for dumb birds
   for (let i = cutoff2; i < birds.length; ++i) {
     let bird = birds[i];
+    if (bird.fitness > 0) continue;
     let index = bird.brain.index;
     nns[index].dispose();
     nns[index] = new BirdNeuralNetwork(index);
-    console.log("bad: " + bird.fitness);
   }
 }
 
@@ -119,9 +131,7 @@ function evolve_birds() {
 function step(delta) {
   // if all birds are dead then evolve brains and reset stage
   if (!bird_man.has_living_bird()) {
-    spacekey.press = null;
-    evolve_birds();
-    reset();
+    do_on_dead_birds();
     return;
   }
 
@@ -173,8 +183,13 @@ function step(delta) {
 
   // moves the target marker to next target wall
   if (!target_wall || target_passed) {
+    ++score;
     let bird = bird_man.get_living_bird();
     target_wall = get_next_object_ahead(bird, wall_man.get_all());
+    second_target_wall = get_next_object_ahead(target_wall, wall_man.get_all());
+
+    console.log(bird.get_dist_from_target_wall(target_wall), bird.get_dist_from_target_wall(second_target_wall));
+
     if (target_wall) {
       centered_pos = get_centered_pos(
         target_marker,
@@ -186,47 +201,90 @@ function step(delta) {
   }
 
   if (target_passed) {
-    ++score;
-    update_score();
+    //++score;
+    update_text();
     play_sound("bird-score");
   }
 
-  if (target_wall) {
+  if (target_wall && second_target_wall) {
     for (let i = 0; i < bird_man.size(); ++i) {
       let bird = bird_man.get(i);
       if (!bird.alive) continue;
       let nn = bird.brain;
       //let dist_from_ceil = bird.y;
       //let dist_from_floor = APPHEIGHT - (bird.y + bird.height);
-      let alpha = nn.predict(bird.get_dist_from_target_wall(target_wall));
+      let alpha = nn.predict(
+        bird.yv,
+        bird.get_dist_from_target_wall(target_wall),
+        bird.get_dist_from_target_wall(second_target_wall).y
+      );
       if (alpha > 0.5) bird.jump();
     }
   }
 }
 
+// runs when all birds dead
+function do_on_dead_birds() {
+  spacekey.press = null;
+  reset();
+}
+
 // resets the stage
 function reset() {
   stop_all_sounds();
+
+  update_history();
+  evolve_birds();
+
+  ++generation;
+  update_text();
+
   wall_man.clear();
   bird_man.clear();
   other_man.clear();
 
-  app.ticker.stop();
-  app.ticker = new PIXI.ticker.Ticker();
-  spacekey.press = null;
-  rkey.press = null;
+  reset_ticker();
+  unbind_keys();
 
-  ++generation;
-  update_generation();
   init();
 }
 
+function update_history() {
+  let birds = bird_man.get_all();
+  history[generation] = [];
+  for (let i = 0; i < birds.length; ++i) {
+    let bird = birds[i];
+    let iw = Array.from(bird.brain.input_weights.dataSync());
+    let ow = Array.from(bird.brain.output_weights.dataSync());
+    let round_fn = e => {
+      return Number(e.toFixed(2));
+    };
+    iw = iw.map(round_fn);
+    ow = ow.map(round_fn);
+    let bird_data = {
+      fitness: round_fn(bird.fitness),
+      color: bird.color,
+      input_weights: iw,
+      output_weights: ow
+    };
+    history[generation][i] = bird_data;
+  }
+}
+
+function reset_ticker() {
+  app.ticker.stop();
+  app.ticker = new PIXI.ticker.Ticker();
+}
+
+function unbind_keys() {
+  spacekey.press = null;
+  rkey.press = null;
+}
+
 // sets the store in the html
-function update_score() {
+function update_text() {
   let score_elem = document.getElementById("score");
   score_elem.innerText = score;
-}
-function update_generation() {
   let generation_elem = document.getElementById("generation");
   generation_elem.innerText = generation;
 }
@@ -251,4 +309,83 @@ function get_random_gap() {
 function pan_stage() {
   let bird = bird_man.get_living_bird();
   app.stage.pivot.x = bird.x + 290;
+}
+
+function init_table() {
+  let table = `
+  <table border="1" style="table-layout: fixed">
+  <thead>
+  <tr>
+    <th>Bird</th>`;
+  for (let i = 0; i < generation; ++i) {
+    table += `<th>Gen ${i}</th>`;
+  }
+  table += `</tr></thead>`;
+
+  table += "<tbody>";
+  for (let i = 0; i < BIRDCOUNT; ++i) {
+    table += "<tr>";
+    table += `<td>${i}</td>`;
+
+    for (let g = 0; g < generation; ++g) {
+      let s_bird = history[g][i];
+      let iwval = s_bird.input_weights.toString();
+      let owval = s_bird.output_weights.toString();
+      let iwlen = s_bird.input_weights.length;
+      let owlen = s_bird.output_weights.length;
+      if (g > 0 && s_bird.fitness > 0 && history[g - 1][i].fitness > 0) {
+        iwval = "";
+        owval = "";
+        ps_bird = history[g - 1][i];
+        for (let j = 0; j < iwlen; ++j) {
+          if (s_bird.input_weights[j] > ps_bird.input_weights[j]) {
+            iwval +=
+              "<span style='background-color: green'>" +
+              s_bird.input_weights[j] +
+              "</span>";
+          } else if (s_bird.input_weights[j] < ps_bird.input_weights[j]) {
+            iwval +=
+              "<span style='background-color: red'>" +
+              s_bird.input_weights[j] +
+              "</span>";
+          } else {
+            iwval += s_bird.input_weights[j];
+          }
+        }
+        for (let j = 0; j < owlen; ++j) {
+          if (s_bird.output_weights[j] > ps_bird.output_weights[j]) {
+            owval +=
+              "<span style='background-color: green'>" +
+              s_bird.output_weights[j] +
+              "</span>";
+          } else if (s_bird.output_weights[j] < ps_bird.output_weights[j]) {
+            owval +=
+              "<span style='background-color: red'>" +
+              s_bird.output_weights[j] +
+              "</span>";
+          } else {
+            owval += s_bird.output_weights[j];
+          }
+          if (j > 0 && j % 4 == 0) owval += "<br/>";
+        }
+      }
+      let fitness = history[g][i].fitness;
+      let fitness_color = "white";
+      if (fitness > 0) fitness_color = "green";
+      else if (g > 0 && history[g - 1][i].fitness > 0) fitness_color = "red";
+      table += `
+      <td>
+        color: <font color='${history[g][i].color}'>██████</font><br/>
+        fitness: <span style='background-color: ${fitness_color}'>${fitness}</span><br/>
+        iw: ${iwval}<br/>
+        ow: ${owval}<br/>
+      </td>
+    `;
+    }
+    table += "</tr>";
+  }
+  table += "</tbody></table>";
+
+  let table_holder = document.getElementById("table-holder");
+  table_holder.innerHTML = table;
 }

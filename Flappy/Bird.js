@@ -2,15 +2,20 @@ const BIRDWIDTH = 20;
 const BIRDHEIGHT = 20;
 const BIRDXV = 2;
 const GRAVITY = .5;
-const BIRDMAXYV = 4;
-const BIRDJUMPV = -10;
+const BIRDMAXYV = 8;
+const BIRDJUMPV = -8;
 const BIRDDEATHCOLOR = '0x7c0a02';
-const WALLPASSFITNESSMULT = 20;
+const WALLPASSFITNESSMULT = 100;
 
 class Bird extends PIXI.Sprite {
     constructor(x, y, color, brain) {
         super(PIXI.Texture.WHITE)
-        if (color != undefined) this.tint = color;
+        if (color != undefined) {
+            this.tint = '0x' + color.substring(1);
+            this.color = color;
+        } else {
+            this.color = "#ffffff";
+        }
         this.x = x;
         this.y = y;
         this.width = BIRDWIDTH;
@@ -22,7 +27,7 @@ class Bird extends PIXI.Sprite {
         this.steps_taken = 0;
         this.fitness = 0;
         this.brain = brain;
-        this.alpha = .8;
+        this.alpha = 1;//.8;
     }
     get_dist_from_target_wall(target_wall) {
         let gap_bottom = target_wall.get_gap_bottom();
@@ -49,7 +54,7 @@ class Bird extends PIXI.Sprite {
     }
     kill() {
         this.alive = false;
-        this.tint = BIRDDEATHCOLOR;
+        //this.tint = BIRDDEATHCOLOR;
         //play_sound("game-over");
     }
     jump() {
