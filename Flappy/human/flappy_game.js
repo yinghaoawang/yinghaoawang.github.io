@@ -1,6 +1,6 @@
 // consts
-const WALLXINTERVAL = 300;
-const WALLINITIALX = 260;
+const WALLXINTERVAL = 120;
+const WALLINITIALX = 150;
 const APPWIDTH = 800;
 const APPHEIGHT = 600;
 const BIRDCOUNT = 1;
