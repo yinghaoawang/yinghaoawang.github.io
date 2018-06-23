@@ -1,10 +1,9 @@
 // consts
-
 const WALLXINTERVAL = 300;
 const WALLINITIALX = 260;
 const APPWIDTH = 800;
 const APPHEIGHT = 600;
-const BIRDCOUNT = 10;
+const BIRDCOUNT = 1;
 
 const app = new PIXI.Application(APPWIDTH, APPHEIGHT);
 document.getElementsByClassName("container-game")[0].appendChild(app.view);
@@ -20,35 +19,17 @@ let other_man = new ObjectManager(app.stage);
 let target_wall = null;
 let score = 0;
 
-let model = tf.sequential();
-model.add(
-  tf.layers.dense({
-    inputShape: [2],
-    activation: "sigmoid",
-    units: 6
-  })
-);
-model.add(
-  tf.layers.dense({
-    inputShape: [6],
-    activation: "sigmoid",
-    units: 1
-  })
-);
-
 app.stage.x = app.renderer.width / 2;
 
 init();
 
 function init() {
-  console.log(model);
   app.ticker.add(delta => step(delta));
   app.ticker.start();
 
-  //spacekey.press = () => bird.jump();
-  //rkey.press = () => reset();
+  spacekey.press = () => bird.jump();
+  rkey.press = () => reset();
 
-  bird_man.add(10, APPHEIGHT / 4);
   for (let i = 0; i < BIRDCOUNT; ++i) {
     bird_man.add(10, (APPHEIGHT / 4) + i * 20, get_random_hex_color());
   }
