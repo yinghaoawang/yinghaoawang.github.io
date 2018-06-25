@@ -1,9 +1,10 @@
 const BIRDWIDTH = 20;
 const BIRDHEIGHT = 20;
 const BIRDXV = 2;
-const GRAVITY = .5;
-const BIRDMAXYV = 8;
-const BIRDJUMPV = -8;
+const GRAVITY = .8;
+const BIRDMAXYV = 90;
+//const BIRDJUMPV = -8;
+const BIRDJUMPACC = -2;
 const BIRDDEATHCOLOR = '0x7c0a02';
 const WALLPASSFITNESSMULT = 100;
 
@@ -58,7 +59,8 @@ class Bird extends PIXI.Sprite {
         //play_sound("game-over");
     }
     jump() {
-        this.yv = BIRDJUMPV;
+        //this.yv = BIRDJUMPV;
+        this.yv += BIRDJUMPACC;
         //play_sound("bird-jump");
     }
 
@@ -84,5 +86,17 @@ class Bird extends PIXI.Sprite {
         let oh_shape = this.brain.output_weights.shape;
         this.brain.output_weights.dispose();
         this.brain.output_weights = tf.tensor(new_oh, oh_shape);
+    }
+
+    cross_over(partner) {
+        console.log(this.brain.input_weights);
+        let child_brain = this.brain.clone(this.brain.index);
+        for (let i = 0; i < this.brain.input_weights.length; ++i) {
+            if (Math.random() < .5) {
+                console.log("mutated index: " + i);
+                child_brain.input_weights[i] = partner.input_weights[i];
+            }
+        }
+        return child_brain;
     }
 }
