@@ -1,16 +1,7 @@
-const BIRDWIDTH = 20;
-const BIRDHEIGHT = 20;
-const BIRDXV = 2;
-const GRAVITY = .8;
-const BIRDMAXYV = 90;
-//const BIRDJUMPV = -8;
-const BIRDJUMPACC = -2;
-const BIRDDEATHCOLOR = '0x7c0a02';
-const WALLPASSFITNESSMULT = 100;
-
 class Bird extends PIXI.Sprite {
     constructor(x, y, color, brain) {
-        super(PIXI.Texture.WHITE)
+        super(PIXI.Texture.WHITE);
+        //super(new PIXI.Texture.fromImage('bird.png'));
         if (color != undefined) {
             this.tint = '0x' + color.substring(1);
             this.color = color;
@@ -21,6 +12,7 @@ class Bird extends PIXI.Sprite {
         this.y = y;
         this.width = BIRDWIDTH;
         this.height = BIRDHEIGHT;
+        this.accelerating_jump = ACCELERATING_JUMP;
         this.xv = BIRDXV;
         this.yv = 0;
         this.alive = true;
@@ -31,6 +23,13 @@ class Bird extends PIXI.Sprite {
         this.alpha = 1;//.8;
     }
     get_dist_from_target_wall(target_wall) {
+        if (target_wall == undefined) {
+            console.error("Target wall does not exist.");
+            return {
+                "x": 0,
+                "y": 0
+            };
+        }
         let gap_bottom = target_wall.get_gap_bottom();
         let h_dist = (target_wall.x + target_wall.width) - (this.x);
         let v_dist = (gap_bottom.y) - (this.y + this.height);
@@ -55,12 +54,14 @@ class Bird extends PIXI.Sprite {
     }
     kill() {
         this.alive = false;
-        //this.tint = BIRDDEATHCOLOR;
         //play_sound("game-over");
     }
     jump() {
-        //this.yv = BIRDJUMPV;
-        this.yv += BIRDJUMPACC;
+        if (this.accelerating_jump) {
+            this.yv += BIRDJUMPACC;
+        } else {
+            this.yv = BIRDJUMPV;
+        }
         //play_sound("bird-jump");
     }
 
@@ -88,15 +89,30 @@ class Bird extends PIXI.Sprite {
         this.brain.output_weights = tf.tensor(new_oh, oh_shape);
     }
 
+    /* cross over with a partner bird, returns child's brain */
     cross_over(partner) {
-        console.log(this.brain.input_weights);
+        //console.log(this.brain.input_weights);
         let child_brain = this.brain.clone(this.brain.index);
-        for (let i = 0; i < this.brain.input_weights.length; ++i) {
+        let ih = this.brain.input_weights.dataSync();
+        let partner_ih = partner.brain.input_weights.dataSync();
+        for (let i = 0; i < ih.length; ++i) {
             if (Math.random() < .5) {
-                console.log("mutated index: " + i);
-                child_brain.input_weights[i] = partner.input_weights[i];
+                ih[i] = partner_ih[i];
             }
         }
+        let oh = this.brain.output_weights.dataSync();
+        let partner_oh = partner.brain.output_weights.dataSync();
+        for (let i = 0; i < oh.length; ++i) {
+            if (Math.random() < .5) {
+                oh[i] = partner_oh[i];
+            }
+        }
+        child_brain.input_weights.dispose();
+        child_brain.output_weights.dispose();
+        let ih_shape = child_brain.input_weights.shape;
+        let oh_shape = child_brain.output_weights.shape;
+        child_brain.input_weights = tf.tensor(ih, ih_shape);
+        child_brain.output_weights = tf.tensor(oh, oh_shape);
         return child_brain;
     }
 }

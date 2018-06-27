@@ -1,11 +1,3 @@
-const BIRDWIDTH = 20;
-const BIRDHEIGHT = 20;
-const BIRDXV = 2;
-const GRAVITY = .5;
-const BIRDMAXYV = 8;
-const BIRDJUMPV = -8;
-const BIRDDEATHCOLOR = '0x7c0a02';
-
 class Bird extends PIXI.Sprite {
     constructor(x, y, color) {
         super(PIXI.Texture.WHITE)
@@ -48,7 +40,8 @@ class Bird extends PIXI.Sprite {
         play_sound("game-over");
     }
     jump() {
-        this.yv += BIRDJUMPV;
+        if (!this.alive) return;
+        this.yv = BIRDJUMPV;
         play_sound("bird-jump");
     }
 }

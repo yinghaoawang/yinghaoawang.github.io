@@ -1,10 +1,3 @@
-// consts
-const WALLXINTERVAL = 120;
-const WALLINITIALX = 150;
-const APPWIDTH = 800;
-const APPHEIGHT = 600;
-const BIRDCOUNT = 1;
-
 const app = new PIXI.Application(APPWIDTH, APPHEIGHT);
 document.getElementsByClassName("container-game")[0].appendChild(app.view);
 

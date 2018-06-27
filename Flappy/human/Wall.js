@@ -1,7 +1,3 @@
-const WALLWIDTH = 30;
-const WALLGAPHEIGHT = 140;
-const WALLCOLOR = '0x7c0a02';
-
 class Wall extends MultiPart {
     // constructor for the x position and gap starting y position
     constructor(x, gy) {

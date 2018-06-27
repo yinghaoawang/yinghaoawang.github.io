@@ -1,11 +1,11 @@
 class BirdNeuralNetwork extends NeuralNetwork {
     constructor(index) {
-      super(4, 8, 1);
+      super(3, 8, 1);
       this.index = index;
     }
   
-    predict(yvel, dist_from_wall,ydist_from_2wall) {
-      return super.predict([yvel, dist_from_wall.x, dist_from_wall.y, ydist_from_2wall]);
+    predict(yvel, dist_from_wall) {
+      return super.predict([yvel, dist_from_wall.x, dist_from_wall.y]);
     }
 
     clone(index) {
