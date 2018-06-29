@@ -297,14 +297,14 @@ class GameState extends State {
     let pause_menu = new PauseMenu(APPWIDTH, APPHEIGHT);
     pause_menu.delete_on_resume = true;
     // BAD CODE
-    pause_menu.resume_button.click = this.resume.bind(this);
-    pause_menu.reset_button.click = () => {
+    pause_menu.resume_button.pointerdown = this.resume.bind(this);
+    pause_menu.reset_button.pointerdown = () => {
       this.reset();
       this.resume();
     };
-    pause_menu.hard_reset_button.click = this.hard_reset.bind(this);
+    pause_menu.hard_reset_button.pointerdown = this.hard_reset.bind(this);
     // SUPER BAD CODE BAD BAD BAD
-    pause_menu.mm_button.click = () => {
+    pause_menu.mm_button.pointerdown = () => {
       state_machine.pop();
       state_machine.push(main_menu_state);
       main_menu_state.set_start_function(main_menu_link_fn);
