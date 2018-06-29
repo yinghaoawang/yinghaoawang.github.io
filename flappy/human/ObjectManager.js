@@ -14,9 +14,6 @@ class ObjectManager {
   get_all() {
     return this.objects;
   }
-  pop() {
-    if (this.size() > 0) this.remove(this.size() - 1);
-  }
   remove(index) {
     let object = this.objects[index];
     this.stage.removeChild(object);
